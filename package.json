@@ -1,10 +1,17 @@
 {
-  "name": "jago-syariah-parser-gui",
+  "name": "jago-statement-parser",
   "version": "1.0.0",
   "description": "Jago statament parser gui",
   "main": "./out/main/index.js",
   "author": "example.com",
   "homepage": "https://electron-vite.org",
+  "build": {
+    "appId": "com.irfanhkm.jago-statement-parser",
+    "productName": "Jago E-Statement Parser",
+    "directories": {
+      "output": "release"
+    }
+  },
   "scripts": {
     "format": "prettier --write .",
     "lint": "eslint . --ext .js,.jsx,.cjs,.mjs,.ts,.tsx,.cts,.mts --fix",
