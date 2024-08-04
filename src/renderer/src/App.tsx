@@ -1,35 +1,80 @@
-import Versions from './components/Versions'
-import electronLogo from './assets/electron.svg'
+import React, { useState, useCallback } from 'react';
+import { useDropzone } from 'react-dropzone';
+import './App.css';
 
-function App(): JSX.Element {
-  const ipcHandle = (): void => window.electron.ipcRenderer.send('ping')
+function App() {
+  const [file, setFile] = useState<File | null>(null);
+  const [result, setResult] = useState<string>('');
+  const [errors, setErrors] = useState<string[]>([]);
+
+  const onDrop = useCallback((acceptedFiles: File[]) => {
+    if (acceptedFiles.length > 0) {
+      setFile(acceptedFiles[0]);
+    }
+  }, []);
+
+  const { getRootProps, getInputProps, isDragActive, open } = useDropzone({ onDrop, accept: '.pdf', noClick: true });
+
+  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    window.electron.ipcRenderer.send('ping');
+    if (file) {
+      window.electron.ipcRenderer.send('parse-file', file.path);
+      window.electron.ipcRenderer.once('parse-file-response', (event, response) => {
+        if (response.success) {
+          setResult(`File successfully saved to: ${response.savePath}`);
+          setErrors(response.errors);
+        } else {
+          setResult(`Error: ${response.error}`);
+          setErrors(response.errors || []);
+        }
+      });
+    }
+  };
 
   return (
-    <>
-      <img alt="logo" className="logo" src={electronLogo} />
-      <div className="creator">Powered by electron-vite</div>
-      <div className="text">
-        Build an Electron app with <span className="react">React</span>
-        &nbsp;and <span className="ts">TypeScript</span>
-      </div>
-      <p className="tip">
-        Please try pressing <code>F12</code> to open the devTool
-      </p>
-      <div className="actions">
-        <div className="action">
-          <a href="https://electron-vite.org/" target="_blank" rel="noreferrer">
-            Documentation
-          </a>
+    <div className="App">
+      <form onSubmit={handleSubmit}>
+        <div {...getRootProps()} className={`dropzone ${isDragActive ? 'active' : ''}`}>
+          <input {...getInputProps()} />
+          {
+              <p>Drop the PDF file here ...</p>
+          }
         </div>
-        <div className="action">
-          <a target="_blank" rel="noreferrer" onClick={ipcHandle}>
-            Send IPC
-          </a>
+        {file && <p>Selected file: {file.name}</p>}
+        <button type="submit" disabled={!file} style={{marginRight: "20px"}}>
+          Parse Statement
+        </button>
+        {
+         file && 
+         <button disabled={!file} 
+          onClick={() => {
+            setFile(null);
+            setErrors([])
+            setResult('')
+          }}>
+          Clear
+        </button>
+        }
+      </form>
+      {result && (
+        <div>
+          <h2>Result:</h2>
+          <p>{result}</p>
         </div>
-      </div>
-      <Versions></Versions>
-    </>
-  )
+      )}
+      {errors.length > 0 && (
+        <div>
+          <h2>Parsing Errors:</h2>
+          <ul>
+            {errors.map((error, index) => (
+              <li key={index}>{error}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
 }
 
-export default App
+export default App;
